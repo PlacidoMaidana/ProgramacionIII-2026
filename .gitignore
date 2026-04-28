@@ -1,15 +1,36 @@
 /node_modules
+/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Laravel specific
 /public/hot
 /public/storage
-/storage/*.key
-/vendor
+/public/build
+/storage/pail
+storage/*.key
+bootstrap/compiled.php
+app/storage/
+
+# Environment files
 .env
 .env.backup
+.env.production
+
+# IDE
+/.idea
+/.vscode
+
+# Testing
 .phpunit.result.cache
+.phpactor.json
+
+# Vagrant & Docker
+/.vagrant
 docker-compose.override.yml
 Homestead.json
 Homestead.yaml
-npm-debug.log
-yarn-error.log
-/.idea
-/.vscode
+
+# Misc
+auth.json
