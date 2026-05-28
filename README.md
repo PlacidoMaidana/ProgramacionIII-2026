@@ -62,3 +62,17 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Politica de Ramas (Cursada)
+
+Este repositorio se usa para practicos de clase y mantiene una estrategia de ramas simple:
+
+- `main`: contenido estable y publicado para alumnos.
+- `escuela`: integracion del proyecto actual de la cursada.
+- `profesor`: laboratorio para pruebas, ensayos y cambios no presentados aun.
+
+Flujo recomendado:
+
+1. Probar y experimentar en `profesor`.
+2. Pasar lo validado a `escuela`.
+3. Publicar a `main` mediante Pull Request cuando este listo para alumnos.
