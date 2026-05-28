@@ -12,6 +12,7 @@ class EnrollmentController extends Controller
 {
     public function index(Request $request)
     {
+        // with() evita el problema N+1 al cargar relaciones en bloque.
         $enrollments = Enrollment::with(['student.classroom', 'subject'])
             ->orderBy('id', 'desc')
             ->paginate(20);
@@ -33,6 +34,7 @@ class EnrollmentController extends Controller
 
     public function store(Request $request)
     {
+        // store(): valida datos del formulario y crea una nueva inscripcion.
         $validated = $request->validate([
             'student_id' => ['required', 'exists:students,id'],
             'subject_id' => ['required', 'exists:subjects,id'],
@@ -78,6 +80,7 @@ class EnrollmentController extends Controller
 
     public function update(Request $request, Enrollment $enrollment)
     {
+        // update(): modifica una inscripcion existente.
         $validated = $request->validate([
             'student_id' => ['required', 'exists:students,id'],
             'subject_id' => ['required', 'exists:subjects,id'],
@@ -110,6 +113,7 @@ class EnrollmentController extends Controller
 
     public function destroy(Request $request, Enrollment $enrollment)
     {
+        // destroy(): elimina una inscripcion del sistema.
         $enrollment->delete();
 
         if ($request->expectsJson()) {
