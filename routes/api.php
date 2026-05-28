@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\AuthController;
-use App\Http\Controllers\ClassroomController;
-use App\Http\Controllers\EnrollmentController;
-use App\Http\Controllers\StudentController;
-use App\Http\Controllers\SubjectController;
+use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ClassroomController;
+use App\Http\Controllers\Api\EnrollmentController;
+use App\Http\Controllers\Api\StudentController;
+use App\Http\Controllers\Api\SubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
