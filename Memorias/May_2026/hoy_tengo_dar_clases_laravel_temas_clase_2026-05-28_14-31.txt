@@ -1,0 +1,1154 @@
+--- Palabras clave ---
+trabajando, duracion, extender, preparar, restfull, laravel, estamos, sanctum, clases, cuatro, podria, tengo, temas, clase, tiene, horas, hoy, dar, api
+
+👤 Tú: Hoy tengo que dar clases de laravel con estos temas, la clase tiene una duracion de cuatro horas como podria extender y preparar esta clase estamos trabajando con API restfull en Laravel con sanctum
+
+🤖 Gemini: # Plan de Clase: Laravel API RESTful con Sanctum (4 horas)
+
+## Estructura General
+
+```
+⏰ Duración total: 4 horas (240 minutos)
+📋 Temas a cubrir: 6 bloques principales
+🎯 Objetivo: Implementar una API RESTful segura y optimizada
+```
+
+---
+
+## 🕐 Bloque 1: Introducción y Configuración (30 minutos)
+
+### 1.1 Setup del Proyecto (15 min)
+```bash
+# Crear proyecto con API scaffolding
+composer create-project laravel/laravel api-school
+
+# Configurar Sanctum (ya incluido en Laravel 11+)
+php artisan install:api
+
+# Migraciones base
+php artisan make:model Student -m
+php artisan make:model Classroom -m
+php artisan make:model Enrollment -m
+php artisan make:model Subject -m
+
+# Controladores API
+php artisan make:controller Api/StudentController --api
+php artisan make:controller Api/ClassroomController --api
+php artisan make:controller Api/SubjectController --api
+```
+
+### 1.2 Modelos y Relaciones (15 min)
+```php
+// Student.php
+class Student extends Model
+{
+    protected $fillable = ['classroom_id', 'name', 'email', 'phone'];
+    
+    public function classroom(): BelongsTo
+    {
+        return $this->belongsTo(Classroom::class);
+    }
+    
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+    
+    public function subjects(): BelongsToMany
+    {
+        return $this->belongsToMany(Subject::class, 'enrollments')
+                    ->withTimestamps();
+    }
+}
+
+// Classroom.php
+class Classroom extends Model
+{
+    protected $fillable = ['name', 'code', 'capacity', 'grade'];
+    
+    public function students(): HasMany
+    {
+        return $this->hasMany(Student::class);
+    }
+}
+
+// Enrollment.php
+class Enrollment extends Model
+{
+    protected $fillable = ['student_id', 'subject_id', 'enrolled_at'];
+    
+    public function student(): BelongsTo
+    {
+        return $this->belongsTo(Student::class);
+    }
+    
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
+}
+
+// Subject.php
+class Subject extends Model
+{
+    protected $fillable = ['name', 'code', 'credits', 'teacher'];
+    
+    public function enrollments(): HasMany
+    {
+        return $this->hasMany(Enrollment::class);
+    }
+}
+```
+
+---
+
+## 🕐 Bloque 2: Problema N+1 y Carga Ansiosa (40 minutos)
+
+### 2.1 Demostración del Problema (15 min)
+```php
+// Crear datos de prueba con tinker
+php artisan tinker
+
+// Factory para generar datos masivos
+Student::factory()
+    ->count(100)
+    ->has(Classroom::factory())
+    ->create();
+
+// ❌ MAL - Sin carga ansiosa
+Route::get('/students/slow', function () {
+    $students = Student::all();
+    
+    // Habilitar log de consultas
+    DB::enableQueryLog();
+    
+    $result = $students->map(function ($student) {
+        // Esto genera N consultas adicionales
+        return [
+            'student' => $student->name,
+            'classroom' => $student->classroom->name // <-- Problema aquí
+        ];
+    });
+    
+    // Mostrar número de consultas
+    $queries = count(DB::getQueryLog());
+    return response()->json([
+        'data' => $result,
+        'queries' => "$queries consultas ejecutadas"
+    ]);
+});
+
+// ✅ BIEN - Con carga ansiosa
+Route::get('/students/fast', function () {
+    DB::enableQueryLog();
+    
+    $students = Student::with('classroom:id,name')->get();
+    // ▲ Solo classroom.id y classroom.name son cargados
+    
+    $result = $students->map(function ($student) {
+        return [
+            'student' => $student->name,
+            'classroom' => $student->classroom->name
+        ];
+    });
+    
+    $queries = count(DB::getQueryLog());
+    return response()->json([
+        'data' => $result,
+        'queries' => "$queries consultas ejecutadas"
+    ]);
+});
+```
+
+### 2.2 Carga Ansiosa Avanzada (15 min)
+```php
+// Carga ansiosa con condiciones
+$students = Student::with(['classroom' => function ($query) {
+    $query->where('grade', '>', 5)
+          ->select('id', 'name', 'grade');
+}])->get();
+
+// Carga ansiosa anidada
+$students = Student::with([
+    'classroom',
+    'enrollments.subject',
+    'enrollments' => function ($query) {
+        $query->whereYear('created_at', 2024);
+    }
+])->get();
+
+// Lazy loading con lazy
+$students = Student::lazy()->each(function ($student) {
+    // Carga diferida de relaciones
+    $student->load('classroom', 'enrollments.subject');
+    
+    echo "{$student->name} está en {$student->classroom->name}";
+});
+
+// Eager loading condicional con whenLoaded
+$student = Student::with('classroom')->find(1);
+
+// Solo acceder si la relación está cargada
+$className = $student->relationLoaded('classroom') 
+    ? $student->classroom->name 
+    : 'No cargada';
+```
+
+### 2.3 Ejercicio Práctico (10 min)
+```php
+// Tarea para los estudiantes
+Route::get('/classrooms/{classroom}/students', function (Classroom $classroom) {
+    // ✅ Optimizar usando carga ansiosa
+    // Retornar: aula con sus alumnos y las materias de cada alumno
+    
+    // Versión 1: ❌ Ineficiente (N+1)
+    $classroom = Classroom::find($classroom->id);
+    $students = $classroom->students; // 1 consulta
+    foreach ($students as $student) {
+        $student->subjects; // N consultas (uno por estudiante)
+    }
+    
+    // Versión 2: ✅ Optimizada (3 consultas máximo)
+    $classroom = Classroom::with(['students.subjects'])->find($classroom->id);
+    return $classroom;
+});
+```
+
+---
+
+## 🕐 Bloque 3: Validación y Transacciones (45 minutos)
+
+### 3.1 Validación Avanzada (20 min)
+```php
+namespace App\Http\Requests;
+
+class StoreStudentRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        // Verificar si el usuario tiene permiso
+        return auth()->user()->can('create', Student::class);
+    }
+    
+    public function rules(): array
+    {
+        return [
+            'classroom_id' => [
+                'required',
+                'integer',
+                'exists:classrooms,id',
+                function ($attribute, $value, $fail) {
+                    // Validación personalizada
+                    $classroom = Classroom::find($value);
+                    if ($classroom && $classroom->students()->count() >= $classroom->capacity) {
+                        $fail('El aula está llena.');
+                    }
+                },
+            ],
+            'name' => [
+                'required',
+                'string',
+                'min:3',
+                'max:255',
+                'regex:/^[a-zA-Záéíóúñ\s]+$/'
+            ],
+            'email' => [
+                'required',
+                'email:rfc,dns',
+                'unique:students,email',
+                'max:255'
+            ],
+            'phone' => [
+                'nullable',
+                'string',
+                'regex:/^\+?[0-9]{10,15}$/'
+            ],
+            'birth_date' => [
+                'required',
+                'date',
+                'before:18 years ago', // Debe ser mayor de 18
+                'after:100 years ago',  // No más de 100 años
+            ],
+            'subjects' => [
+                'required',
+                'array',
+                'min:1',
+                'max:5'
+            ],
+            'subjects.*' => [
+                'integer',
+                'exists:subjects,id'
+            ]
+        ];
+    }
+    
+    public function messages(): array
+    {
+        return [
+            'name.regex' => 'El nombre solo puede contener letras y espacios.',
+            'birth_date.before' => 'Debes ser mayor de 18 años.',
+            'subjects.max' => 'No puedes inscribirte a más de 5 materias.',
+        ];
+    }
+    
+    protected function prepareForValidation(): void
+    {
+        // Limpiar y preparar datos antes de validar
+        $this->merge([
+            'email' => strtolower($this->email),
+            'phone' => preg_replace('/[^0-9+]/', '', $this->phone),
+        ]);
+    }
+}
+```
+
+### 3.2 Transacciones Complejas (15 min)
+```php
+class EnrollmentService
+{
+    /**
+     * Inscribir estudiante en múltiples materias con validación
+     * y manejo de stock de cupos
+     */
+    public function enrollStudentInSubjects(Student $student, array $subjectIds): void
+    {
+        DB::transaction(function () use ($student, $subjectIds) {
+            // 1. Verificar disponibilidad de cupos
+            $subjects = Subject::whereIn('id', $subjectIds)
+                ->lockForUpdate() // ✅ Bloqueo pesimista
+                ->get();
+            
+            foreach ($subjects as $subject) {
+                if ($subject->enrollments()->count() >= $subject->capacity) {
+                    throw new \Exception("{$subject->name} está llena.");
+                }
+            }
+            
+            // 2. Crear inscripciones
+            $student->subjects()->attach($subjectIds, [
+                'enrolled_at' => now(),
+            ]);
+            
+            // 3. Actualizar estadísticas del aula
+            $student->classroom->increment('active_enrollments');
+            
+            // 4. Registrar en log de auditoría
+            ActivityLog::create([
+                'action' => 'enrollment',
+                'description' => "Estudiante {$student->name} inscrito en " . 
+                                count($subjectIds) . " materias",
+                'user_id' => auth()->id(),
+            ]);
+        }, 5); // Intentar 5 veces si hay deadlock
+    }
+    
+    /**
+     * Transferir estudiante de aula con rollback automático
+     */
+    public function transferClassroom(Student $student, Classroom $newClassroom): void
+    {
+        $oldClassroom = $student->classroom;
+        
+        DB::transaction(function () use ($student, $newClassroom, $oldClassroom) {
+            // Guardar estado anterior por si se necesita restaurar
+            $oldData = $student->toArray();
+            
+            // Actualizar estudiante
+            $student->update(['classroom_id' => $newClassroom->id]);
+            
+            // Actualizar contadores
+            if ($oldClassroom) {
+                $oldClassroom->decrement('student_count');
+                $oldClassroom->activities()->create([
+                    'type' => 'student_left',
+                    'student_id' => $student->id,
+                    'transferred_to' => $newClassroom->id
+                ]);
+            }
+            
+            $newClassroom->increment('student_count');
+            $newClassroom->activities()->create([
+                'type' => 'student_arrived',
+                'student_id' => $student->id,
+                'transferred_from' => $oldClassroom->id ?? null
+            ]);
+            
+            // Validaciones post-transacción
+            if ($newClassroom->student_count > $newClassroom->capacity) {
+                throw new \Exception("Aula {$newClassroom->name} excede capacidad");
+            }
+        });
+    }
+}
+```
+
+### 3.3 Manejo de Errores (10 min)
+```php
+// Exception personalizada
+class EnrollmentException extends Exception
+{
+    public function __construct(
+        string $message,
+        private array $context = [],
+        int $code = 422
+    ) {
+        parent::__construct($message, $code);
+    }
+    
+    public function render(): JsonResponse
+    {
+        return response()->json([
+            'error' => $this->getMessage(),
+            'context' => $this->context,
+            'suggestions' => [
+                'Verifica que el estudiante no esté ya inscrito',
+                'Revisa la capacidad de las materias',
+                'Confirma que el estudiante está activo'
+            ]
+        ], $this->getCode());
+    }
+}
+
+// Handler global para transacciones fallidas
+public function register(): void
+{
+    $this->renderable(function (Throwable $e) {
+        if ($e instanceof \Illuminate\Database\QueryException) {
+            Log::error('Error de base de datos', [
+                'message' => $e->getMessage(),
+                'sql' => $e->getSql(),
+                'bindings' => $e->getBindings()
+            ]);
+            
+            return response()->json([
+                'error' => 'Error al procesar la solicitud',
+                'code' => 'DATABASE_ERROR'
+            ], 500);
+        }
+    });
+}
+```
+
+---
+
+## 🕐 Bloque 4: CRUD Completo con Sanctum (55 minutos)
+
+### 4.1 Configuración de Sanctum (10 min)
+```php
+// config/sanctum.php
+return [
+    'stateful' => explode(',', env('SANCTUM_STATEFUL_DOMAINS', 'localhost,127.0.0.1')),
+    'guard' => ['web'],
+    'expiration' => 60, // minutos
+    'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
+    'middleware' => [
+        'authenticate_session' => Laravel\Sanctum\Http\Middleware\AuthenticateSession::class,
+        'encrypt_cookies' => Illuminate\Cookie\Middleware\EncryptCookies::class,
+    ],
+];
+
+// User.php - Modelo de usuario
+class User extends Authenticatable
+{
+    use HasApiTokens, HasFactory, Notifiable;
+    
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'role', // admin, teacher, student
+        'is_active'
+    ];
+    
+    protected $hidden = ['password', 'remember_token'];
+    
+    protected function casts(): array
+    {
+        return [
+            'email_verified_at' => 'datetime',
+            'password' => 'hashed',
+            'is_active' => 'boolean',
+        ];
+    }
+    
+    public function tokens(): HasMany
+    {
+        return $this->hasMany(PersonalAccessToken::class);
+    }
+    
+    public function canAccess(array $abilities): bool
+    {
+        return $this->tokenCan('*') || $this->tokenCan($abilities);
+    }
+}
+```
+
+### 4.2 Autenticación y Login (15 min)
+```php
+namespace App\Http\Controllers\Api\Auth;
+
+class AuthController extends Controller
+{
+    /**
+     * Login con múltiples opciones de seguridad
+     */
+    public function login(LoginRequest $request): JsonResponse
+    {
+        // Validar rate limiting
+        $key = 'login:' . $request->ip();
+        $attempts = Cache::increment($key);
+        
+        if ($attempts > 5) {
+            throw new \Exception('Demasiados intentos. Espera 1 minuto.');
+        }
+        Cache::expire($key, 60);
+        
+        // Autenticar usuario
+        if (!Auth::attempt($request->only('email', 'password'), $request->remember)) {
+            Log::warning('Login fallido', [
+                'email' => $request->email,
+                'ip' => $request->ip(),
+                'user_agent' => $request->userAgent()
+            ]);
+            
+            return response()->json([
+                'message' => 'Credenciales inválidas'
+            ], 401);
+        }
+        
+        $user = Auth::user();
+        
+        // Verificar si el usuario está activo
+        if (!$user->is_active) {
+            Auth::logout();
+            return response()->json([
+                'message' => 'Cuenta desactivada'
+            ], 403);
+        }
+        
+        // Revocar tokens anteriores si es necesario
+        if ($request->revoke_previous) {
+            $user->tokens()->delete();
+        }
+        
+        // Crear token con capacidades específicas
+        $abilities = match($user->role) {
+            'admin' => ['*'],
+            'teacher' => ['students:read', 'students:write', 'grades:write'],
+            'student' => ['profile:read', 'grades:read'],
+            default => ['profile:read']
+        };
+        
+        $token = $user->createToken(
+            name: $request->device_name ?? 'web',
+            abilities: $abilities,
+            expiresAt: now()->addHours(24)
+        );
+        
+        return response()->json([
+            'user' => new UserResource($user),
+            'token' => $token->plainTextToken,
+            'abilities' => $abilities,
+            'expires_at' => $token->accessToken->expires_at
+        ]);
+    }
+    
+    /**
+     * Logout con limpieza completa
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        
+        // Opciones de logout
+        if ($request->all_devices) {
+            // Revocar todos los tokens
+            $user->tokens()->delete();
+            
+            Log::info('Logout completo', ['user_id' => $user->id]);
+        } else {
+            // Revocar solo el token actual
+            $request->user()->currentAccessToken()->delete();
+        }
+        
+        return response()->json([
+            'message' => 'Sesión cerrada exitosamente'
+        ]);
+    }
+}
+```
+
+### 4.3 CRUD Completo con Middleware (15 min)
+```php
+namespace App\Http\Controllers\Api;
+
+use App\Http\Requests\StoreStudentRequest;
+use App\Http\Requests\UpdateStudentRequest;
+use App\Http\Resources\StudentResource;
+use App\Http\Resources\StudentCollection;
+
+class StudentController extends Controller
+{
+    public function __construct()
+    {
+        // Middleware específico para cada método
+        $this->middleware('ability:students:read')->only(['index', 'show']);
+        $this->middleware('ability:students:write')->only(['store', 'update', 'destroy']);
+        
+        // Rate limiting por método
+        $this->middleware('throttle:60,1')->only('index');
+        $this->middleware('throttle:20,1')->only('store', 'update', 'destroy');
+    }
+    
+    /**
+     * @OA\Get(
+     *     path="/api/students",
+     *     summary="Listar estudiantes con filtros y paginación"
+     * )
+     */
+    public function index(StudentIndexRequest $request): StudentCollection
+    {
+        $query = Student::query()
+            ->with(['classroom:id,name,grade', 'subjects:id,name'])
+            ->withCount('enrollments');
+        
+        // Filtros dinámicos
+        $filters = $request->validated();
+        
+        $query->when($filters['search'] ?? null, function ($q, $search) {
+            $q->where(function ($subQ) use ($search) {
+                $subQ->where('name', 'like', "%{$search}%")
+                     ->orWhere('email', 'like', "%{$search}%");
+            });
+        });
+        
+        $query->when($filters['classroom_id'] ?? null, function ($q, $id) {
+            $q->where('classroom_id', $id);
+        });
+        
+        $query->when($filters['grade_min'] ?? null, function ($q, $grade) {
+            $q->whereHas('subjects', function ($subQ) use ($grade) {
+                $subQ->where('grade', '>=', $grade);
+            });
+        });
+        
+        $query->when($filters['sort'] ?? null, function ($q, $sort) {
+            $direction = $filters['direction'] ?? 'asc';
+            $q->orderBy($sort, $direction);
+        });
+        
+        // Cache de resultados
+        $cacheKey = 'students:' . md5(serialize($filters) . $request->page);
+        
+        $students = Cache::remember($cacheKey, 300, function () use ($query) {
+            return $query->paginate($request->per_page ?? 15);
+        });
+        
+        return new StudentCollection($students);
+    }
+    
+    /**
+     * Crear estudiante con transacción y eventos
+     */
+    public function store(StoreStudentRequest $request): JsonResponse
+    {
+        $student = DB::transaction(function () use ($request) {
+            // Crear estudiante
+            $student = Student::create($request->safe()->except('subjects'));
+            
+            // Inscribir en materias si se especifica
+            if ($subjects = $request->input('subjects')) {
+                app(EnrollmentService::class)
+                    ->enrollStudentInSubjects($student, $subjects);
+            }
+            
+            // Disparar evento
+            event(new StudentCreated($student));
+            
+            // Log de auditoría
+            activity()
+                ->performedOn($student)
+                ->causedBy(auth()->user())
+                ->withProperties(['subjects' => $subjects ?? []])
+                ->log('Estudiante creado');
+            
+            return $student->load(['classroom', 'subjects']);
+        }, 3); // 3 reintentos en caso de deadlock
+        
+        return response()->json([
+            'message' => 'Estudiante creado exitosamente',
+            'data' => new StudentResource($student)
+        ], 201);
+    }
+    
+    /**
+     * Mostrar estudiante con todas sus relaciones
+     */
+    public function show(int $id): StudentResource
+    {
+        $student = Student::with([
+            'classroom' => function ($q) {
+                $q->select('id', 'name', 'grade', 'capacity');
+            },
+            'enrollments' => function ($q) {
+                $q->with(['subject' => function ($sq) {
+                    $sq->select('id', 'name', 'credits');
+                }])->latest();
+            },
+            'enrollments.teacher',
+            'activities' => function ($q) {
+                $q->latest()->limit(10);
+            }
+        ])->findOrFail($id);
+        
+        return new StudentResource($student);
+    }
+    
+    /**
+     * Actualizar con validación y transacción
+     */
+    public function update(UpdateStudentRequest $request, int $id): JsonResponse
+    {
+        $student = Student::findOrFail($id);
+        
+        DB::transaction(function () use ($student, $request) {
+            $oldValues = $student->toArray();
+            $student->update($request->safe()->all());
+            
+            // Si cambia de aula, actualizar contadores
+            if ($student->wasChanged('classroom_id')) {
+                Classroom::where('id', $oldValues['classroom_id'])
+                    ->decrement('student_count');
+                Classroom::where('id', $student->classroom_id)
+                    ->increment('student_count');
+            }
+            
+            // Log de cambios
+            activity()
+                ->performedOn($student)
+                ->withProperties([
+                    'old' => $oldValues,
+                    'new' => $student->toArray()
+                ])
+                ->log('Estudiante actualizado');
+        });
+        
+        return response()->json([
+            'message' => 'Estudiante actualizado',
+            'data' => new StudentResource($student->fresh())
+        ]);
+    }
+    
+    /**
+     * Eliminar con soft delete y cascada
+     */
+    public function destroy(int $id): JsonResponse
+    {
+        $student = Student::findOrFail($id);
+        
+        DB::transaction(function () use ($student) {
+            // Eliminar inscripciones
+            $student->enrollments()->delete();
+            
+            // Actualizar contador del aula
+            Classroom::where('id', $student->classroom_id)
+                ->decrement('student_count');
+            
+            // Soft delete del estudiante
+            $student->delete();
+            
+            // Log
+            activity()
+                ->performedOn($student)
+                ->log('Estudiante eliminado');
+        });
+        
+        return response()->json([
+            'message' => 'Estudiante eliminado correctamente'
+        ]);
+    }
+}
+```
+
+### 4.4 API Resources y Transformación (15 min)
+```php
+// StudentResource.php
+class StudentResource extends JsonResource
+{
+    public function toArray(Request $request): array
+    {
+        $user = $request->user();
+        
+        return [
+            'id' => $this->id,
+            'name' => $this->name,
+            'email' => $this->email,
+            'phone' => $this->phone,
+            
+            // Relaciones condicionales
+            'classroom' => ClassroomResource::make($this->whenLoaded('classroom')),
+            'subjects' => SubjectResource::collection($this->whenLoaded('subjects')),
+            'enrollments' => EnrollmentResource::collection($this->whenLoaded('enrollments')),
+            
+            // Campos calculados
+            'enrollments_count' => $this->when(
+                $this->enrollments_count !== null,
+                $this->enrollments_count
+            ),
+            'average_grade' => $this->when(
+                $user->can('view-grades'),
+                $this->subjects->avg('pivot.grade')
+            ),
+            
+            // Metadata
+            'is_active' => $this->is_active ?? true,
+            'created_at' => $this->created_at->toISOString(),
+            'updated_at' => $this->updated_at->toISOString(),
+            
+            // Links HATEOAS
+            'links' => [
+                'self' => route('api.students.show', $this->id),
+                'classroom' => $this->when(
+                    $this->classroom_id,
+                    route('api.classrooms.show', $this->classroom_id)
+                ),
+            ]
+        ];
+    }
+    
+    public function with(Request $request): array
+    {
+        return [
+            'meta' => [
+                'version' => '1.0',
+                'author' => 'API School System',
+                'timestamp' => now()->toISOString()
+            ]
+        ];
+    }
+}
+
+// StudentCollection.php
+class StudentCollection extends ResourceCollection
+{
+    public $collects = StudentResource::class;
+    
+    public function toArray(Request $request): array
+    {
+        return [
+            'data' => $this->collection,
+            
+            'pagination' => [
+                'total' => $this->total(),
+                'count' => $this->count(),
+                'per_page' => $this->perPage(),
+                'current_page' => $this->currentPage(),
+                'total_pages' => $this->lastPage(),
+                'next_page_url' => $this->nextPageUrl(),
+                'prev_page_url' => $this->previousPageUrl(),
+                'first_page_url' => $this->url(1),
+                'last_page_url' => $this->url($this->lastPage()),
+            ],
+            
+            'meta' => [
+                'filters' => request()->only(['search', 'classroom_id', 'sort']),
+                'request_time' => microtime(true) - LARAVEL_START,
+            ]
+        ];
+    }
+}
+```
+
+---
+
+## 🕐 Bloque 5: Optimización y Buenas Prácticas (25 minutos)
+
+### 5.1 Modo Estricto y Debugging (10 min)
+```php
+// AppServiceProvider.php - Configuración completa
+class AppServiceProvider extends ServiceProvider
+{
+    public function boot(): void
+    {
+        // ✅ Modo estricto de Eloquent
+        Model::shouldBeStrict(!$this->app->isProduction());
+        
+        // ✅ Configurar lazy loading como excepción en desarrollo
+        if ($this->app->isLocal()) {
+            Model::preventLazyLoading();
+            Model::preventSilentlyDiscardingAttributes();
+            Model::preventAccessingMissingAttributes();
+        }
+        
+        // ✅ Log de consultas lentas
+        DB::whenQueryingForLongerThan(500, function (Connection $connection) {
+            Log::warning('Query lenta detectada', [
+                'query' => $connection->getQueryLog(),
+                'time' => $connection->totalQueryDuration()
+            ]);
+        });
+        
+        // ✅ Configurar paginación por defecto
+        Paginator::defaultView('pagination::bootstrap-5');
+        Paginator::defaultSimpleView('pagination::simple-bootstrap-5');
+        
+        // ✅ Forzar HTTPS en producción
+        if ($this->app->isProduction()) {
+            URL::forceScheme('https');
+        }
+        
+        // ✅ Configurar logs de seguridad
+        Activity::auth(function () {
+            return auth()->user();
+        });
+    }
+    
+    public function register(): void
+    {
+        // ✅ Registro de servicios útiles
+        $this->app->singleton(EnrollmentService::class);
+        $this->app->singleton(StudentQueryBuilder::class);
+    }
+}
+```
+
+### 5.2 Optimización de Memoria con Chunks (10 min)
+```php
+// ReportGenerator.php - Generación de reportes masivos
+class ReportGenerator
+{
+    /**
+     * Generar reporte de estudiantes con materias
+     * Optimizado para grandes volúmenes de datos
+     */
+    public function generateReport(string $type): void
+    {
+        // ✅ Opción 1: chunkById para procesamiento en lotes
+        Student::with(['classroom', 'subjects'])
+            ->select(['id', 'name', 'email', 'classroom_id'])
+            ->chunkById(200, function ($students) use ($type) {
+                foreach ($students as $student) {
+                    $this->processStudentRecord($student, $type);
+                }
+                
+                // Liberar memoria explícitamente
+                gc_collect_cycles();
+            }, 'id');
+        
+        // ✅ Opción 2: LazyCollection para procesar uno por uno
+        $progressBar = new ProgressBar($output, Student::count());
+        
+        Student::cursor()
+            ->each(function ($student) use ($progressBar) {
+                $this->processStudent($student);
+                $progressBar->advance();
+            });
+        
+        // ✅ Opción 3: chunk con condicionales
+        Student::query()
+            ->whereHas('enrollments', function ($q) {
+                $q->whereYear('created_at', 2024);
+            })
+            ->chunk(100, function ($students) {
+                // Procesar en paralelo con hilos
+                Parallel::each($students, function ($student) {
+                    $this->updateStudentStats($student);
+                });
+            });
+    }
+    
+    /**
+     * Exportar a CSV con streaming directo
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        return response()->stream(function () {
+            $handle = fopen('php://output', 'w');
+            
+            // Header
+            fputcsv($handle, ['ID', 'Nombre', 'Email', 'Aula', 'Materias']);
+            
+            // Datos en streaming
+            Student::with('classroom', 'subjects')
+                ->chunk(100, function ($students) use ($handle) {
+                    foreach ($students as $student) {
+                        fputcsv($handle, [
+                            $student->id,
+                            $student->name,
+                            $student->email,
+                            $student->classroom?->name,
+                            $student->subjects->pluck('name')->implode(', ')
+                        ]);
+                    }
+                    
+                    ob_flush();
+                    flush();
+                });
+            
+            fclose($handle);
+        }, 200, [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => 'attachment; filename="students_export.csv"',
+        ]);
+    }
+}
+
+// Optimización de consultas pesadas
+class HeavyQueryOptimizer
+{
+    /**
+     * Cachear resultados de consultas frecuentes
+     */
+    public function getStudentWithDetails(int $studentId): Student
+    {
+        return Cache::remember(
+            "student.{$studentId}.details",
+            now()->addMinutes(30),
+            function () use ($studentId) {
+                return Student::with([
+                    'classroom.teacher',
+                    'subjects' => function ($q) {
+                        $q->withPivot('grade', 'enrolled_at')
+                          ->orderBy('enrolled_at');
+                    }
+                ])->findOrFail($studentId);
+            }
+        );
+    }
+    
+    /**
+     * Consulta con índices compuestos
+     */
+    public function searchStudents(array $filters): LengthAwarePaginator
+    {
+        // Asegurar que se usen los índices correctos
+        DB::statement('SET SESSION optimizer_search_depth = 0');
+        
+        return Student::select([
+                'id', 'name', 'email', 'classroom_id',
+                DB::raw("MATCH(name, email) AGAINST(? IN BOOLEAN MODE) as relevance"),
+            ])
+            ->setBindings([$filters['query']], 'select')
+            ->whereRaw("MATCH(name, email) AGAINST(? IN BOOLEAN MODE)", [$filters['query']])
+            ->orderBy('relevance', 'desc')
+            ->paginate(20);
+    }
+}
+```
+
+### 5.3 Cache Estratégico (5 min)
+```php
+class CacheManager
+{
+    /**
+     * Sistema de cache multi-nivel para estudiantes
+     */
+    public function getStudentsList(array $filters): array
+    {
+        $cacheKey = 'students:' . md5(serialize($filters));
+        $tags = ['students', 'students_index'];
+        
+        // ✅ Cache en memoria (Redis)
+        if ($cached = Cache::tags($tags)->get($cacheKey)) {
+            return $cached;
+        }
+        
+        // ✅ Cache en archivo (segundo nivel)
+        if (config('cache.default') === 'file') {
+            return $this->fileCacheSystem($cacheKey, $filters);
+        }
+        
+        // ✅ Generar y cachear
+        $data = Student::with(['classroom:id,name'])
+            ->filter($filters)
+            ->paginate(20)
+            ->toArray();
+        
+        Cache::tags($tags)->put($cacheKey, $data, now()->addHours(1));
+        
+        return $data;
+    }
+    
+    /**
+     * Invalidación inteligente de cache
+     */
+    public function invalidateStudentCache(Student $student): void
+    {
+        // Eliminar cache relacionado con este estudiante
+        Cache::tags([
+            "student:{$student->id}",
+            'students_index'
+        ])->flush();
+        
+        // También invalidar cache del aula
+        if ($student->classroom_id) {
+            Cache::tags([
+                "classroom:{$student->classroom_id}",
+                'classrooms_index'
+            ])->flush();
+        }
+        
+        // Notificar a otros servicios
+        Cache::add('cache:invalidated:students', now(), 10);
+    }
+}
+```
+
+---
+
+## 🕐 Bloque 6: Testing y QA (30 minutos)
+
+### 6.1 Tests con Patrón Recycle (15 min)
+```php
+namespace Tests\Feature;
+
+class StudentApiTest extends TestCase
+{
+    use RefreshDatabase;
+    
+    private User $admin;
+    private User $teacher;
+    private Collection $classrooms;
+    private Collection $subjects;
+    
+    protected function setUp(): void
+    {
+        parent::setUp();
+        
+        // ✅ Crear datos base reciclables
+        $this->admin = User::factory()->create(['role' => 'admin']);
+        $this->teacher = User::factory()->create(['role' => 'teacher']);
+        $this->classrooms = Classroom::factory()->count(3)->create();
+        $this->subjects = Subject::factory()->count(10)->create();
+    }
+    
+    /** @test */
+    public function test_create_student_with_enrollments()
+    {
+        $studentData = [
+            'classroom_id' => $this->classrooms->random()->id,
+            'name' => 'Juan Pérez',
+            'email' => 'juan@example.com',
+            'subjects' => $this->subjects->random(3)->pluck('id')->toArray()
+        ];
+        
+        $response = $this->actingAs($this->admin, 'sanctum')
+            ->postJson('/api/students', $studentData);
+        
+        $response->assertStatus(201)
+            ->assertJsonStructure([
+                'data' => [
+                    'id',
+                    'name',
+                    'email',
+                    'classroom',
+                    'subjects',
+                    'links'
+                ]
+            ]);
+        
+        $this->assertDatabaseHas('students', [
+            'name' => 'Juan Pérez',
+            'email' => 'juan@example.com'
+
+--------------------------------------------------------------------------------

@@ -1,0 +1,56 @@
+FLUJO GIT DOCENTE PARA PRACTICOS
+Fecha: 2026-05-28
+Repositorio: escuela
+
+OBJETIVO
+Mantener un repositorio ordenado para alumnos (estable) y profesor (experimental).
+
+RAMAS BASE
+- main: contenido estable y publicado para alumnos.
+- escuela: trabajo del proyecto actual (integracion antes de publicar a main).
+- profesor: laboratorio personal para pruebas y ensayos.
+
+REGLA SIMPLE
+- Lo que no esta probado, queda en profesor.
+- Lo que ya esta validado para clase, pasa a escuela.
+- Lo que se publica a alumnos, pasa a main.
+
+FLUJO SEMANAL RECOMENDADO
+1) Antes de clase
+   - trabajar en profesor.
+   - crear commits pequenos por tema.
+
+2) Preparacion de material de clase
+   - fusionar o cherry-pick de profesor hacia escuela.
+   - ejecutar pruebas minimas y revisar endpoints.
+
+3) Publicacion a alumnos
+   - fusionar escuela hacia main solo cuando este estable.
+   - etiquetar version de clase (opcional): clase-2026-05-28.
+
+4) Post clase
+   - registrar mejoras o pendientes en Memorias.
+   - volver a profesor para nuevas pruebas.
+
+NOMBRES DE RAMAS CORTAS (OPCIONAL)
+- profesor/auth-sandbox
+- profesor/testing-api
+- escuela/ajustes-clase-01
+
+REGLAS DE COMMIT
+- Mensajes claros y cortos.
+- Un tema por commit.
+- Ejemplos:
+  - feat(api): agregar validaciones de subjects
+  - fix(auth): corregir logout con sanctum
+  - test(api): agregar test de acceso sin token
+
+CHECKLIST RAPIDO ANTES DE PASAR A MAIN
+- proyecto levanta
+- login y logout funcionan
+- CRUD principal responde
+- al menos pruebas basicas ejecutadas
+- sin archivos temporales ni secretos
+
+NOTA
+Memorias debe permanecer versionada en este repositorio para conservar planificaciones y decisiones de clase.

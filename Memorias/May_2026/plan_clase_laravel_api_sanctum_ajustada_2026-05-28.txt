@@ -1,0 +1,204 @@
+PLAN DE CLASE AJUSTADO (HOY) - LARAVEL API REST + SANCTUM
+Fecha: 2026-05-28
+Duracion restante estimada: 3 horas 30 min (210 min)
+Contexto: la primera media hora ya fue cubierta.
+Proyecto base: escuela (API con Sanctum y recursos students/classrooms/subjects/enrollments)
+
+==================================================
+1) OBJETIVO DE LA CLASE DE HOY
+==================================================
+Que los estudiantes salgan pudiendo:
+- Autenticarse con Sanctum (login/logout y uso de token).
+- Consumir y validar CRUD REST real en el proyecto.
+- Detectar y corregir un caso basico de N+1.
+- Probar endpoints en Postman con flujo completo.
+- Entender un minimo de pruebas Feature para API.
+
+Resultado tangible al cierre:
+- Flujo funcional: register/login -> token -> CRUD protegido -> logout.
+- Al menos 1 endpoint optimizado con eager loading.
+- Al menos 1 test Feature ejecutado y explicado.
+
+==================================================
+2) AGENDA RECOMENDADA (210 MIN)
+==================================================
+
+BLOQUE A - Calentamiento tecnico y contexto (20 min)
+- Revisar rapidamente arquitectura real del proyecto:
+  - rutas API protegidas con auth:sanctum
+  - controladores principales
+  - modelo de autenticacion
+- Confirmar entorno para demo:
+  - migraciones listas
+  - DB conectada
+  - servidor levantado
+
+Mensaje clave docente:
+"Hoy no vemos teoria aislada: todo lo que expliquemos se valida en endpoints reales."
+
+
+BLOQUE B - Flujo de autenticacion Sanctum (45 min)
+Objetivo: dominar flujo de token en una API real.
+
+Paso a paso en vivo:
+1. Explicar que endpoints estan publicos y cuales protegidos.
+2. Register y login (request/response, status codes).
+3. Copiar token en Postman (Bearer Token).
+4. Consumir /api/user autenticado.
+5. Logout y validacion de token invalidado.
+
+Puntos didacticos:
+- Diferencia entre 401 (no autenticado) y 403 (sin permiso).
+- Buenas practicas de manejo de token (no hardcodear, expiracion).
+
+Ejercicio corto (10 min dentro del bloque):
+- Cada alumno autentica y consulta un endpoint protegido.
+
+
+BLOQUE C - CRUD REST con validaciones reales (55 min)
+Objetivo: recorrer CRUD completo y leer validaciones.
+
+Orden sugerido:
+1. Subject (rapido y claro para base CRUD).
+2. Student (si quieres mayor complejidad).
+
+Checklist tecnico del bloque:
+- GET index: paginacion y forma de respuesta.
+- POST store: validaciones y errores 422.
+- GET show: recurso individual.
+- PUT/PATCH update: Rule unique ignore.
+- DELETE destroy: respuesta final esperada.
+
+Punto de alto valor:
+- Mostrar 1 payload invalido a proposito para leer el error de validacion.
+- Explicar por que ese feedback reduce bugs en frontend.
+
+Mini practica guiada:
+- En parejas, crear 1 materia valida y luego intentar duplicar code para ver unique en accion.
+
+
+BLOQUE D - Rendimiento: N+1 + eager loading (35 min)
+Objetivo: que vean impacto real en consultas.
+
+Secuencia:
+1. Mostrar consulta naive (sin eager loading) en un endpoint con relaciones.
+2. Contar consultas y tiempo.
+3. Aplicar with(...) y repetir medicion.
+4. Comparar antes/despues en lenguaje simple.
+
+Mensaje clave:
+"No optimizamos por moda; optimizamos donde duele."
+
+Actividad:
+- Proponer que identifiquen otra accion donde podria aparecer N+1.
+
+
+BLOQUE E - QA rapido para API (35 min)
+Objetivo: introducir cultura de pruebas sin frenar ritmo.
+
+Contenido:
+1. Estructura base de Feature tests en Laravel.
+2. Caso minimo: test de acceso protegido sin token (espera 401).
+3. Caso minimo: test de login exitoso o create de recurso.
+4. Ejecutar tests y leer salida.
+
+Gancho pedagogico:
+- Explicar que pruebas API son "red de seguridad" para refactors.
+
+
+BLOQUE F - Cierre y consolidacion (20 min)
+Objetivo: cerrar con evidencia de aprendizaje.
+
+Cierre propuesto:
+- Demo final de flujo completo de negocio:
+  register/login -> CRUD -> endpoint protegido -> logout.
+- Preguntas guiadas de repaso.
+- Checklist de "que ya sabes hacer hoy".
+- Dejar desafio para la proxima clase.
+
+==================================================
+3) GUION OPERATIVO DEL DOCENTE (PRACTICO)
+==================================================
+
+Antes de iniciar clase:
+- Tener abierta la coleccion Postman del proyecto.
+- Tener usuarios semilla o flujo de register listo.
+- Confirmar comandos clave:
+  - php artisan serve
+  - php artisan migrate --seed (si hace falta reset)
+
+Durante clase:
+- Alternar bloques de 8-12 minutos explicacion + 8-12 minutos practica.
+- Cada bloque debe terminar con una evidencia observable:
+  - endpoint responde,
+  - error 422 entendido,
+  - token invalido tras logout,
+  - test ejecutado.
+
+Si aparece un error inesperado en vivo:
+- No ocultarlo. Convertirlo en mini laboratorio (3-5 min max):
+  1) leer mensaje,
+  2) ubicar causa,
+  3) aplicar fix,
+  4) reintentar.
+- Si consume demasiado tiempo: registrar en "parking lot" y seguir agenda.
+
+==================================================
+4) POSTMAN: ORDEN SUGERIDO PARA DEMO
+==================================================
+1. POST /api/register
+2. POST /api/login
+3. GET /api/user (con token)
+4. GET /api/subjects
+5. POST /api/subjects
+6. PUT /api/subjects/{id}
+7. DELETE /api/subjects/{id}
+8. GET /api/students (si hay tiempo para relacionar con enrollments/classrooms)
+9. POST /api/logout
+10. GET /api/user (debe fallar por token revocado)
+
+==================================================
+5) ACTIVIDADES DE ESTUDIANTES (CON TIEMPO)
+==================================================
+- Actividad 1 (10 min): autenticar y consultar endpoint protegido.
+- Actividad 2 (15 min): crear materia valida + provocar error de code duplicado.
+- Actividad 3 (15 min): detectar posible N+1 y proponer with(...) adecuado.
+- Actividad 4 (10 min): ejecutar 1 test Feature y explicar su assert principal.
+
+==================================================
+6) PLAN B (POR SI TE QUEDAS CORTO O TE SOBRA TIEMPO)
+==================================================
+
+Si se adelanta la clase:
+- Agregar filtros y busqueda en index de subjects/students.
+- Mostrar respuesta paginada limpia para frontend.
+- Abrir tema breve de politicas/autorizacion por rol.
+
+Si se atrasa la clase:
+- Priorizar solo:
+  1) autenticacion,
+  2) CRUD de Subject,
+  3) un ejemplo de N+1,
+  4) un test minimo.
+- Testing avanzado queda de tarea.
+
+==================================================
+7) TAREA FINAL RECOMENDADA
+==================================================
+Entrega individual:
+- Agregar validacion nueva a un endpoint (explicar regla).
+- Crear 1 endpoint con eager loading correcto.
+- Escribir 2 tests Feature:
+  - uno exitoso,
+  - uno de error de validacion o no autenticado.
+
+Criterios de evaluacion rapidos:
+- Correctitud funcional.
+- Claridad del codigo.
+- Calidad de mensajes de error.
+- Cobertura minima de pruebas.
+
+==================================================
+8) FRASE DE CIERRE SUGERIDA
+==================================================
+"Hoy pasamos de usar Laravel como framework a usarlo como plataforma de API profesional: segura, validada, medible y testeable."
