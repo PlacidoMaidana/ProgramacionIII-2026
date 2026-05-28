@@ -1,0 +1,66 @@
+--- Palabras clave ---
+enrrollement, directorio, explorando
+
+Directorio explorando enrrollement  
+
+
+📋 .editorconfig
+  📋 .env
+  📋 .env.example
+► 📁 .git
+  📋 .gitattributes
+  📋 .gitignore
+  📋 .styleci.yml
+► 📁 Memorias
+  📄 README.md
+▼ 📁 app
+  ► 📁 Console
+  ► 📁 Exceptions
+  ▼ 📁 Http
+    ▼ 📁 Controllers
+      ► 📁 Api
+        📄 AuthController.php
+        📄 ClassroomController.php
+        📄 Controller.php
+        📄 EnrollmentController.php
+        📄 StudentController.php
+        📄 SubjectController.php
+      📄 Kernel.php
+    ► 📁 Middleware
+  ▼ 📁 Models
+      📄 Classroom.php
+      📄 Enrollment.php
+      📄 Student.php
+      📄 Subject.php
+      📄 User.php
+  ► 📁 Providers
+  📋 artisan
+► 📁 bootstrap
+  📄 composer.json
+  📋 composer.lock
+► 📁 config
+► 📁 database
+  📄 package.json
+  📄 phpunit.xml
+► 📁 proyecto
+► 📁 public
+▼ 📁 resources
+  ► 📁 css
+  ► 📁 js
+  ► 📁 lang
+  ▼ 📁 views
+    ► 📁 classrooms
+    ▼ 📁 enrollments
+        📄 create.blade.php
+        📄 edit.blade.php
+        📄 index.blade.php
+    ► 📁 layouts
+    ► 📁 students
+    ► 📁 subjects
+      📄 welcome.blade.php
+► 📁 routes
+  📄 server.php
+► 📁 storage
+► 📁 tests
+► 📁 vendor
+  📄 webpack.mix.js
