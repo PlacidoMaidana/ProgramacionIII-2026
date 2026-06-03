@@ -78,5 +78,6 @@ Route::get('/persona/{id}/editar', [App\Http\Controllers\PersonaController::clas
 Route::post('/persona/{id}', [App\Http\Controllers\PersonaController::class, 'update']);
 Route::get('/persona/{id}/eliminar', [App\Http\Controllers\PersonaController::class, 'destroy']);
 
-Route::get('/enrollements', [App\Http\Controllers\EnrollementController::class, 'index']);
-Route::get('/enrollements/materias', [App\Http\Controllers\EnrollementController::class, 'materias']);
+Route::redirect('/enrollements', '/enrollments');
+Route::get('/enrollments', [App\Http\Controllers\EnrollmentController::class, 'index']);
+Route::get('/enrollments/materias', [App\Http\Controllers\EnrollmentController::class, 'materias']);

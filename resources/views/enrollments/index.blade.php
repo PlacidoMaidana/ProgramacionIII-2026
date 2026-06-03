@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Ficha de Enrollements')
+@section('title', 'Ficha de Enrollments')
 
 @section('content')
 <div class="container mt-4">
-    <h2>Ficha de Enrollements</h2>
+    <h2>Ficha de Enrollments</h2>
     <p class="text-muted">Ejemplo simple de AJAX con Axios.</p>
 
     <button id="btn-cargar-materias" class="btn btn-primary mb-3">
@@ -13,10 +13,10 @@
     <ul id="lista-materias" class="list-group"></ul>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="{{ asset('vendor/axios/axios.min.js') }}"></script>
 <script>
     document.getElementById('btn-cargar-materias').addEventListener('click', function () {
-        axios.get('/enrollements/materias')
+        axios.get('/enrollments/materias')
             .then(function (response) {
                 const lista = document.getElementById('lista-materias');
                 lista.innerHTML = '';
@@ -28,7 +28,8 @@
                     lista.appendChild(item);
                 });
             })
-            .catch(function () {
+            .catch(function (error) {
+                console.error(error);
                 alert('No se pudo cargar la lista de materias.');
             });
     });

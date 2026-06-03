@@ -4,11 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\JsonResponse;
 
-class EnrollementController extends Controller
+class EnrollmentController extends Controller
 {
     public function index()
     {
-        return view('enrollements.index');
+        return view('enrollments.index');
     }
 
     public function materias(): JsonResponse
