@@ -25,5 +25,5 @@ Route::resource('students', StudentController::class);
 Route::resource('classrooms', ClassroomController::class);
 Route::resource('subjects', SubjectController::class);
 Route::resource('enrollments', EnrollmentController::class);
-Route::get('/enrollements', [App\Http\Controllers\EnrollementController::class, 'index']);
-Route::get('/enrollements/materias', [App\Http\Controllers\EnrollementController::class, 'materias']);
+Route::redirect('/enrollements', '/enrollments');
+Route::get('/enrollments/materias', [EnrollmentController::class, 'materias']);

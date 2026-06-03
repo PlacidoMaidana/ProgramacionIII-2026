@@ -47,4 +47,39 @@
 </div>
 
 <div class="mt-3">{{ $enrollments->links() }}</div>
+
+<hr class="my-4">
+
+<h2 class="h5">Demo AJAX con Axios</h2>
+<p class="text-muted">Cargar materias desde el endpoint /enrollments/materias.</p>
+
+<button id="btn-cargar-materias" class="btn btn-primary mb-3">
+    Cargar materias
+</button>
+
+<ul id="lista-materias" class="list-group"></ul>
+@endsection
+
+@section('scripts')
+<script src="{{ asset('vendor/axios/axios.min.js') }}"></script>
+<script>
+    document.getElementById('btn-cargar-materias').addEventListener('click', function () {
+        axios.get('/enrollments/materias')
+            .then(function (response) {
+                const lista = document.getElementById('lista-materias');
+                lista.innerHTML = '';
+
+                response.data.forEach(function (materia) {
+                    const item = document.createElement('li');
+                    item.className = 'list-group-item';
+                    item.textContent = materia.nombre;
+                    lista.appendChild(item);
+                });
+            })
+            .catch(function (error) {
+                console.error(error);
+                alert('No se pudo cargar la lista de materias.');
+            });
+    });
+</script>
 @endsection

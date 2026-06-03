@@ -14,7 +14,7 @@
                 <ul class="navbar-nav ms-auto">
                     <li class="nav-item"><a class="nav-link" href="{{ url('/personas') }}">Personas</a></li>
                     <li class="nav-item"><a class="nav-link" href="{{ url('/persona/nueva') }}">Nueva Persona</a></li>
-                    <li class="nav-item"><a class="nav-link" href="{{ url('/enrollements') }}">Enrollements</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/enrollments') }}">Enrollments</a></li>
                 </ul>
             </div>
         </div>

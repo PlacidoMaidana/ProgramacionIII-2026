@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Enrollment;
 use App\Models\Student;
 use App\Models\Subject;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
@@ -121,5 +122,15 @@ class EnrollmentController extends Controller
         }
 
         return redirect()->route('enrollments.index')->with('success', 'Inscripcion eliminada correctamente.');
+    public function materias(): JsonResponse
+    {
+        $materias = [
+            ['id' => 1, 'nombre' => 'Programación III'],
+            ['id' => 2, 'nombre' => 'Base de Datos'],
+            ['id' => 3, 'nombre' => 'Desarrollo Web'],
+            ['id' => 4, 'nombre' => 'Arquitectura de Software'],
+        ];
+
+        return response()->json($materias);
     }
 }
