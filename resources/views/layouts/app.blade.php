@@ -8,13 +8,14 @@
 </head>
 <body class="bg-light">
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand" href="{{ route('students.index') }}">Sistema Escolar</a>
-            <div class="navbar-nav">
-                <a class="nav-link" href="{{ route('students.index') }}">Students</a>
-                <a class="nav-link" href="{{ route('classrooms.index') }}">Classrooms</a>
-                <a class="nav-link" href="{{ route('subjects.index') }}">Subjects</a>
-                <a class="nav-link" href="{{ route('enrollments.index') }}">Enrollments</a>
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url('/') }}">Laravel Demo</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/personas') }}">Personas</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/persona/nueva') }}">Nueva Persona</a></li>
+                    <li class="nav-item"><a class="nav-link" href="{{ url('/enrollements') }}">Enrollements</a></li>
+                </ul>
             </div>
         </div>
     </nav>
