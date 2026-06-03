@@ -77,3 +77,6 @@ Route::post('/persona', [App\Http\Controllers\PersonaController::class, 'store']
 Route::get('/persona/{id}/editar', [App\Http\Controllers\PersonaController::class, 'edit']);
 Route::post('/persona/{id}', [App\Http\Controllers\PersonaController::class, 'update']);
 Route::get('/persona/{id}/eliminar', [App\Http\Controllers\PersonaController::class, 'destroy']);
+
+Route::get('/enrollements', [App\Http\Controllers\EnrollementController::class, 'index']);
+Route::get('/enrollements/materias', [App\Http\Controllers\EnrollementController::class, 'materias']);
