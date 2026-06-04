@@ -28,6 +28,8 @@ class EnrollmentController extends Controller
         $students = Student::orderBy('name')->get();
         $subjects = Subject::orderBy('name')->get();
 
+       // dd($students->toArray());
+
         return view('enrollments.create', compact('students', 'subjects'));
     }
 

@@ -36,5 +36,11 @@
 
         @yield('content')
     </main>
+
+
+    {{-- Bootstrap JS es necesario para que funcionen los modales (data-bs-toggle, data-bs-dismiss, eventos show.bs.modal). --}}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    {{-- Cada vista puede inyectar su JS especifico aqui (por ejemplo create/edit de enrollments). --}}
+    @yield('scripts')
 </body>
 </html>
