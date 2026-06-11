@@ -2,14 +2,7 @@
 
 @section('content')
 <h1 class="h4 mb-3">Edit subject</h1>
-<div
-    id="subject-meta"
-    data-subject-id="{{ $subject->id }}"
-    data-subject-name="{{ e($subject->name) }}"
-    data-url-resumen="{{ url('/enrollments/resumen') }}"
-    data-url-materias="{{ url('/enrollments/materias') }}"
-    data-url-data="{{ url('/enrollments/data') }}"
-></div>
+<div id="subject-meta" data-subject-id="{{ $subject->id }}" data-subject-name="{{ e($subject->name) }}"></div>
 
 <form method="POST" action="{{ route('subjects.update', $subject) }}" class="card card-body">
     @csrf
@@ -210,10 +203,6 @@
         const btnFiltrarInscripciones = document.getElementById('btn-filtrar-inscripciones');
         const tbodyInscripciones = document.getElementById('tbody-inscripciones');
 
-        const urlResumen = subjectMeta.dataset.urlResumen;
-        const urlMaterias = subjectMeta.dataset.urlMaterias;
-        const urlData = subjectMeta.dataset.urlData;
-
         function isAxiosEnabled() {
             return chkAxios.checked;
         }
@@ -236,7 +225,7 @@
                 subjectName: subjectMeta.dataset.subjectName,
                 timestamp: new Date().toISOString()
             };
-            console.log('Este mensaje va a consola--> Debug payload:', payload);
+            console.log('Debug payload:', payload);
         });
 
         chkAxios.addEventListener('change', syncAxiosButtons);
@@ -281,7 +270,7 @@
 
         btnCargarResumen.addEventListener('click', function () {
             if (!isAxiosEnabled()) return;
-            axios.get(urlResumen)
+            axios.get('/enrollments/resumen')
                 .then(function (res) {
                     const t = res.data.totals || {};
                     outResumen.textContent =
@@ -298,7 +287,7 @@
 
         btnCargarMaterias.addEventListener('click', function () {
             if (!isAxiosEnabled()) return;
-            axios.get(urlMaterias, {
+            axios.get('/enrollments/materias', {
                 params: {
                     q: txtFiltroMateria.value.trim() || undefined,
                     min_enrollments: 0
@@ -330,15 +319,39 @@
         btnFiltrarInscripciones.addEventListener('click', function () {
             if (!isAxiosEnabled()) return;
 
-            axios.get(urlMaterias)
+            axios.get('/enrollments/data', {
+                params: {
+                    student: txtStudentFilter.value.trim() || undefined,
+                    min_grade: txtMinGrade.value || undefined,
+                    max_grade: txtMaxGrade.value || undefined,
+                    per_page: 8
+                }
+            })
                 .then(function (res) {
-                    console.log('Materias:', res.data.data);
+                    const rows = res.data.data || [];
+                    tbodyInscripciones.innerHTML = '';
+
+                    if (!rows.length) {
+                        tbodyInscripciones.innerHTML = '<tr><td colspan="5" class="text-muted text-center">Sin resultados para esos filtros.</td></tr>';
+                        return;
+                    }
+
+                    rows.forEach(function (row) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML =
+                            '<td>' + row.id + '</td>' +
+                            '<td>' + (row.student ?? '-') + '</td>' +
+                            '<td>' + (row.classroom ?? '-') + '</td>' +
+                            '<td>' + (row.subject ?? '-') + '</td>' +
+                            '<td>' + (row.grade ?? '-') + '</td>';
+                        tbodyInscripciones.appendChild(tr);
+                    });
                 })
                 .catch(function (err) {
-                    console.error('Error al consultar materias:', err);
+                    console.error(err);
+                    tbodyInscripciones.innerHTML = '<tr><td colspan="5" class="text-danger text-center">Error al filtrar inscripciones.</td></tr>';
                 });
         });
-
 
         syncAxiosButtons();
     })();

@@ -23,10 +23,9 @@ Route::get('/', function () {
 
 Route::resource('students', StudentController::class);
 Route::resource('classrooms', ClassroomController::class);
-Route::get('subjects/by-student', [SubjectController::class, 'byStudent'])->name('subjects.by-student');
 Route::resource('subjects', SubjectController::class);
+Route::resource('enrollments', EnrollmentController::class);
+Route::redirect('/enrollements', '/enrollments');
 Route::get('/enrollments/materias', [EnrollmentController::class, 'materias']);
 Route::get('/enrollments/data', [EnrollmentController::class, 'data']);
 Route::get('/enrollments/resumen', [EnrollmentController::class, 'resumen']);
-Route::resource('enrollments', EnrollmentController::class);
-Route::redirect('/enrollements', '/enrollments');

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Subject;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class SubjectController extends Controller
@@ -81,5 +82,35 @@ class SubjectController extends Controller
         }
 
         return redirect()->route('subjects.index')->with('success', 'Materia eliminada correctamente.');
+    }
+
+    public function byStudent(Request $request)
+    {
+        $studentId = $request->query('student_id');
+        
+        $materias = collect();
+
+        if ($studentId) {
+            $materias = DB::table('enrollments')
+                ->join('subjects', 'subjects.id', '=', 'enrollments.subject_id')
+                ->where('enrollments.student_id', $studentId)
+                ->select(
+                    'subjects.id',
+                    'subjects.name',
+                    'subjects.code',
+                    'enrollments.grade'
+                )
+                ->orderBy('subjects.name')
+                ->get();
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json($materias);
+        }
+
+        return view('subjects.by-student', [
+            'materias' => $materias,
+            'studentId' => $studentId,
+        ]);
     }
 }
