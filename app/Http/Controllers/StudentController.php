@@ -6,7 +6,9 @@ use App\Models\Classroom;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Http\JsonResponse;
 
 class StudentController extends Controller
 {
@@ -30,7 +32,7 @@ class StudentController extends Controller
         return view('students.create', compact('classrooms'));
     }
 
-    public function store(Request $request)
+    /* public function store(Request $request)
     {
         $validated = $request->validate([
             'classroom_id' => ['required', 'exists:classrooms,id'],
@@ -47,7 +49,39 @@ class StudentController extends Controller
         }
 
         return redirect()->route('students.index')->with('success', 'Estudiante creado correctamente.');
-    }
+    }*/
+
+    public function store(Request $request): JsonResponse
+        {
+            // Validamos los datos entrantes (incluyendo la foto)
+            $validated = $request->validate([
+                'classroom_id' => ['required', 'exists:classrooms,id'],
+                'name'         => ['required', 'string', 'max:255'],
+                'email'        => ['required', 'email', 'max:255', 'unique:students,email'],
+                'photo'        => ['nullable', 'image', 'mimes:jpeg,png,jpg', 'max:10240'], // máx 10MB
+            ]);
+
+            // Procesamos el archivo si viene en la petición
+            if ($request->hasFile('photo')) {
+                // Guarda el archivo en storage/app/public/student_photos (disco 'public')
+                // y obtiene la ruta relativa (e.g. 'student_photos/abc.jpg')
+                $path = $request->file('photo')->store('student_photos', 'public');
+                // Generamos la URL pública '/storage/student_photos/abc.jpg'
+                $validated['photo'] = Storage::url($path);
+            }
+
+            // Ejecutamos la creación segura usando transacciones
+            $student = DB::transaction(fn () => Student::create($validated));
+
+            // --- AQUÍ SE PODRÍA DISPARAR UN EVENTO INTERNO DE LARAVEL SI QUERÉS PROYECTARLO EN TIEMPO REAL ---
+            // event(new AlumnoInscripto($student)); 
+
+            return response()->json(
+                $student->load(['classroom', 'subjects']),
+                201
+            );
+        }
+
 
     public function show(Request $request, Student $student)
     {

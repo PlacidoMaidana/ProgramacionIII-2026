@@ -28,6 +28,7 @@
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
+
             <tbody>
                 @forelse($students as $student)
                     <tr>
@@ -130,4 +131,5 @@
         });
     }
 </script>
+
 @endsection
