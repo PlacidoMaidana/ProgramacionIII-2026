@@ -34,8 +34,6 @@ class EnrollmentController extends Controller
         $students = Student::orderBy('name')->get();
         $subjects = Subject::orderBy('name')->get();
 
-       // dd($students->toArray());
-
         return view('enrollments.create', compact('students', 'subjects'));
     }
 
@@ -177,24 +175,61 @@ class EnrollmentController extends Controller
     {
         $validated = $request->validate([
             'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
+            'classroom_id' => ['nullable', 'integer', 'exists:classrooms,id'],
+            'student' => ['nullable', 'string', 'max:80'],
+            'min_grade' => ['nullable', 'numeric', 'between:0,10'],
+            'max_grade' => ['nullable', 'numeric', 'between:0,10'],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:50'],
         ]);
-    
+
         $query = Enrollment::query()
             ->with(['student.classroom', 'subject'])
             ->when(isset($validated['subject_id']), function ($q) use ($validated) {
                 $q->where('subject_id', $validated['subject_id']);
-            });
-    
-        $rows = $query->paginate($validated['per_page'] ?? 10);
-    
+            })
+            ->when(isset($validated['classroom_id']), function ($q) use ($validated) {
+                $q->whereHas('student', function ($sq) use ($validated) {
+                    $sq->where('classroom_id', $validated['classroom_id']);
+                });
+            })
+            ->when(!empty($validated['student']), function ($q) use ($validated) {
+                $name = trim($validated['student']);
+                $q->whereHas('student', function ($sq) use ($name) {
+                    $sq->where('name', 'like', "%{$name}%");
+                });
+            })
+            ->when(isset($validated['min_grade']), function ($q) use ($validated) {
+                $q->whereNotNull('grade')->where('grade', '>=', $validated['min_grade']);
+            })
+            ->when(isset($validated['max_grade']), function ($q) use ($validated) {
+                $q->whereNotNull('grade')->where('grade', '<=', $validated['max_grade']);
+            })
+            ->orderBy('id', 'desc');
+
+        $perPage = (int) ($validated['per_page'] ?? 10);
+        $rows = $query->paginate($perPage);
+
         return response()->json([
+            'filters' => [
+                'subject_id' => $validated['subject_id'] ?? null,
+                'classroom_id' => $validated['classroom_id'] ?? null,
+                'student' => $validated['student'] ?? null,
+                'min_grade' => $validated['min_grade'] ?? null,
+                'max_grade' => $validated['max_grade'] ?? null,
+                'per_page' => $perPage,
+            ],
+            'pagination' => [
+                'current_page' => $rows->currentPage(),
+                'last_page' => $rows->lastPage(),
+                'total' => $rows->total(),
+            ],
             'data' => collect($rows->items())->map(function ($enrollment) {
                 return [
                     'id' => $enrollment->id,
                     'student' => optional($enrollment->student)->name,
                     'classroom' => optional(optional($enrollment->student)->classroom)->name,
                     'subject' => optional($enrollment->subject)->name,
+                    'subject_code' => optional($enrollment->subject)->code,
                     'grade' => $enrollment->grade,
                 ];
             })->values(),

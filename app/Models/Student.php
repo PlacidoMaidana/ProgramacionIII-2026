@@ -13,6 +13,7 @@ class Student extends Model
         'classroom_id',
         'name',
         'email',
+        'photo', // <--- Agregamos este campo
     ];
 
     public function classroom()

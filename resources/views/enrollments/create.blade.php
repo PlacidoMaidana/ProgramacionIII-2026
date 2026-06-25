@@ -3,18 +3,22 @@
 @section('content')
 <h1 class="h4 mb-3">Create enrollment</h1>
 
+<div class="alert alert-info">
+    <strong>Guia JS para principiantes:</strong>
+    Este formulario usa modales para seleccionar alumno y materia.
+    El JavaScript de esta vista esta al final, en la seccion <em>@section('scripts')</em>.
+</div>
+
 <form method="POST" action="{{ route('enrollments.store') }}" class="card card-body">
     @csrf
 
     <div class="mb-3">
-        <label class="form-label">Student</label>
-         <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+            <label class="form-label mb-0">Student</label>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#studentModal">
                 Select from modal
             </button>
-
-            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#studentModal-tabla">
-                Select from modal (table)
-            </button>
+        </div>
         <select id="student_id" name="student_id" class="form-select mt-2" required>
             <option value="">Select student</option>
             @foreach($students as $student)
@@ -25,12 +29,13 @@
     </div>
 
     <div class="mb-3">
-        <label class="form-label">Subject</label>
-       <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#subjectModal">
+        <div class="d-flex align-items-center justify-content-between gap-2">
+            <label class="form-label mb-0">Subject</label>
+            <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#subjectModal">
                 Select from modal
             </button>
-         
-         <select id="subject_id" name="subject_id" class="form-select mt-2" required>
+        </div>
+        <select id="subject_id" name="subject_id" class="form-select mt-2" required>
             <option value="">Select subject</option>
             @foreach($subjects as $subject)
                 <option value="{{ $subject->id }}" @selected(old('subject_id') == $subject->id)>{{ $subject->name }} ({{ $subject->code }})</option>
@@ -50,99 +55,38 @@
     </div>
 </form>
 
-{{-- Modal de alumnos para edicion: seleccion asistida sin recargar la pagina. --}}
+{{-- Modal de alumnos: lista dinamica construida desde el select para evitar duplicar miles de nodos en el DOM. --}}
 <div class="modal fade" id="studentModal" tabindex="-1" aria-labelledby="studentModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="studentModalLabel">Seleccionar Estudiante</h5>
+                <h5 class="modal-title" id="studentModalLabel">Choose student</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-
-                 
-
                 <div id="studentModalList" class="list-group"></div>
             </div>
         </div>
     </div>
 </div>
 
-
-{{-- Modal de alumnos para edicion: seleccion asistida sin recargar la pagina. --}}
-<div class="modal fade" id="studentModal-tabla" tabindex="-1" aria-labelledby="studentModalLabel-tabla" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="studentModalLabel">Seleccionar Estudiante</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-
-
-
-<button>filtrar</button>
-
-             <table class="table table-striped">
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Email</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($students as $student)
-                            <tr>
-                                <td>{{ $student->name }}</td>
-                                <td>{{ $student->email }}</td>
-                                <td>
-                                    <button type="button" class="btn btn-sm btn-success select-student"
-                                            data-id="{{ $student->id }}"
-                                            data-name="{{ $student->name }}">
-                                        Seleccionar
-                                    </button>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-                 
-            </div>
-        </div>
-    </div>
-</div>
-
-
-
-
-
-
-
-
-
 {{-- Modal de materias: mismo patron que alumnos para mantener comportamiento consistente. --}}
 <div class="modal fade" id="subjectModal" tabindex="-1" aria-labelledby="subjectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="subjectModalLabel">Seleccionar Materia</h5>
+                <h5 class="modal-title" id="subjectModalLabel">Choose subject</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-
-                 <div id="subjectModalList" class="list-group"></div>
-                 
+                <div id="subjectModalList" class="list-group"></div>
             </div>
         </div>
     </div>
 </div>
 @endsection
 
- 
-
 @section('scripts')
-
 <script>
     // GUIA RAPIDA (nivel inicial):
     // 1) Tenemos dos <select> en el formulario: student_id y subject_id.
@@ -159,7 +103,7 @@
         // Buscamos elementos del DOM por id.
         var select = document.getElementById(selectId);
         var list = document.getElementById(listId);
-        
+
         // Si no encontramos alguno, salimos para evitar errores.
         if (!select || !list) {
             return;
@@ -202,14 +146,6 @@
         });
     }
 
-    // Evento del modal de alumnos: antes de mostrarse, generamos su lista.
-    var studentModal = document.getElementById('studentModal-tabla');
-    if (studentModal) {
-        studentModal.addEventListener('show.bs.modal', function () {
-            buildListFromSelect('student_id', 'studentModalList', 'select-student');
-        });
-    }
-
     // Evento del modal de materias: mismo flujo que alumnos.
     var subjectModal = document.getElementById('subjectModal');
     if (subjectModal) {
@@ -233,9 +169,6 @@
             return;
         }
 
-
-       
-
         // Si se clickea una materia, la pasamos al select subject_id.
         var subjectButton = event.target.closest('.select-subject');
         if (subjectButton) {
@@ -245,14 +178,5 @@
             }
         }
     });
-</script>
-
-
-
-
-<script>
-    function mostrarAlerta() {
-        alert('¡Este es un alert desde una función!');
-    }
 </script>
 @endsection
